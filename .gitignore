@@ -1,0 +1,7 @@
+node_modules/
+build/
+artifacts/
+.tmp/
+.tmp_pkg/
+electrobun-*.tgz
+electrobun-help.txt
