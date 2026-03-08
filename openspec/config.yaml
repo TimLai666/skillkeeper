@@ -1,20 +1,32 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Product: SkillKeeper
+  Product type: Three-platform desktop GUI application for managing AI agent skills
+  Target platforms: Windows, macOS, Linux
+  Tech direction: Electrobun + React + TypeScript + SQLite
+  Git integration: Use the system Git executable and system credentials
+  Local storage: Default under ~/.skillkeeper
+  Supported agents in MVP: Codex and Claude Code
+  Product rules:
+  - Skills are imported into a central Skill Library before deployment
+  - External Git repositories are tracked as source repositories and are read-only by default
+  - A separate central Library Repo handles cross-device sync and may auto-commit and auto-push
+  - Uninstall only removes deployed copies from agent directories
+  - Delete removes a skill from the library and clears related deployment bindings
+  - Import validation blocks invalid structures and warns on executable scripts
+  Documentation rules:
+  - Keep each change narrowly scoped and independently testable
+  - Prefer observable behavior over implementation minutiae in specs
+  - Capture paths, error handling, and acceptance criteria when they affect user workflows
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+rules:
+  proposal:
+    - Keep the proposal focused on one change only.
+    - Capabilities must use stable kebab-case names and map one-to-one to specs in the change folder.
+  design:
+    - Document concrete technical choices for Electrobun, React, TypeScript, SQLite, and system Git when relevant.
+    - Call out cross-platform filesystem and path risks whenever a change touches disk or agent deployment.
+  tasks:
+    - Keep tasks implementation-ready and order them by dependency.
+    - Include verification tasks for user-visible flows and failure handling.
