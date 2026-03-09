@@ -46,6 +46,24 @@ button:disabled {
   padding: 3rem;
 }
 
+.top-nav {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.top-nav-button {
+  background: rgba(255, 255, 255, 0.56);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.top-nav-button-active {
+  background: #1f1c17;
+  color: #fff9f1;
+}
+
 .hero-card,
 .panel {
   background: var(--panel);
@@ -136,6 +154,33 @@ button:disabled {
   padding: 1.5rem;
 }
 
+.summary-grid {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.summary-card {
+  border: 1px solid rgba(92, 67, 37, 0.12);
+  border-radius: 18px;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.summary-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.summary-card strong {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 1.6rem;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
 .panel p {
   color: var(--muted);
   line-height: 1.55;
@@ -175,6 +220,13 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
+.field-error {
+  display: block;
+  margin-top: 0.4rem;
+  color: var(--error);
+  font-size: 0.86rem;
+}
+
 .kv-grid input {
   width: 100%;
   border: 1px solid rgba(92, 67, 37, 0.15);
@@ -199,6 +251,55 @@ button:disabled {
   margin: 1rem 0 0;
   padding-left: 1.1rem;
   line-height: 1.55;
+}
+
+.acceptance-list {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.acceptance-item {
+  border: 1px solid rgba(92, 67, 37, 0.12);
+  border-radius: 18px;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.46);
+}
+
+.acceptance-item-complete {
+  border-color: rgba(40, 90, 63, 0.22);
+}
+
+.acceptance-item-pending {
+  border-color: rgba(143, 93, 25, 0.22);
+}
+
+.acceptance-item-blocked {
+  border-color: rgba(141, 47, 43, 0.24);
+}
+
+.acceptance-item-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.empty-state-card {
+  border: 1px dashed rgba(92, 67, 37, 0.2);
+  border-radius: 18px;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.empty-state-card strong {
+  display: block;
+}
+
+.empty-state-card p {
+  margin: 0.45rem 0 0;
 }
 
 .import-controls,
@@ -495,6 +596,7 @@ button:disabled {
 
   .library-layout,
   .detail-two-column,
+  .summary-grid,
   .skill-deployments {
     grid-template-columns: 1fr;
   }

@@ -1,0 +1,101 @@
+{
+  "generatedAt": "2026-03-09T07:53:41.104Z",
+  "environment": {
+    "platform": "win32",
+    "bun": "1.3.5",
+    "gitVersion": "git version 2.49.0.windows.1"
+  },
+  "smoke": {
+    "platform": "windows",
+    "steps": [
+      {
+        "name": "bootstrap-and-settings",
+        "passed": true,
+        "detail": "Bootstrapped managed paths and persisted auto-sync plus agent settings."
+      },
+      {
+        "name": "folder-import",
+        "passed": true,
+        "detail": "Imported 1 skill from folder source."
+      },
+      {
+        "name": "git-clone-scan",
+        "passed": true,
+        "detail": "Cloned local remote and scanned 1 candidate skill(s)."
+      },
+      {
+        "name": "deployment-and-library-management",
+        "passed": true,
+        "detail": "Installed the imported skill to Codex and Claude Code and loaded library detail."
+      },
+      {
+        "name": "library-sync",
+        "passed": true,
+        "detail": "Library repo sync finished with status succeeded."
+      }
+    ]
+  },
+  "benchmarks": {
+    "folderImportMs": 14.289600000000007,
+    "localCloneScanMs": 534.6382999999998,
+    "deploymentAttempts": 20,
+    "deploymentSuccesses": 20
+  },
+  "evaluation": {
+    "allPassed": true,
+    "metrics": {
+      "importMs": 14.289600000000007,
+      "importTargetMs": 10000,
+      "importTargetMet": true,
+      "cloneMs": 534.6382999999998,
+      "cloneTargetMs": 60000,
+      "cloneTargetMet": true,
+      "deploymentSuccessRate": 1,
+      "deploymentTargetRate": 0.95,
+      "deploymentTargetMet": true
+    }
+  },
+  "checklist": [
+    {
+      "id": "bootstrap",
+      "label": "Bootstrap",
+      "status": "complete",
+      "detail": "App storage, default settings, and Git readiness resolved successfully."
+    },
+    {
+      "id": "import",
+      "label": "Import Workflow",
+      "status": "complete",
+      "detail": "1 skill imported into the managed library."
+    },
+    {
+      "id": "library-management",
+      "label": "Library Management",
+      "status": "complete",
+      "detail": "Library list and detail workflows have managed skill data to inspect."
+    },
+    {
+      "id": "deployment",
+      "label": "Deployment",
+      "status": "complete",
+      "detail": "At least one skill is installed to a target agent path."
+    },
+    {
+      "id": "sync",
+      "label": "Library Sync",
+      "status": "complete",
+      "detail": "Library Repo has completed at least one successful sync."
+    },
+    {
+      "id": "conflict-recovery",
+      "label": "Conflict Recovery",
+      "status": "complete",
+      "detail": "No unresolved Library Repo conflicts are blocking release."
+    }
+  ],
+  "knownGaps": [
+    "macOS and Linux smoke tests are defined separately but were not executed from this Windows environment.",
+    "The clone benchmark uses a local bare Git remote, so it excludes network latency and credential prompts.",
+    "Deployment reliability measures managed file-copy operations only, not live agent invocation."
+  ]
+}

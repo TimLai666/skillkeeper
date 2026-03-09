@@ -3,6 +3,11 @@ import { createRoot } from "react-dom/client";
 import { Electroview } from "electrobun/view";
 import type { AppSettings, BootstrapState } from "../shared/bootstrap";
 import type { ShellRPCSchema } from "../shared/bootstrap-rpc";
+import { computeDashboardSummary, validateSettingsInput } from "../shared/dashboard";
+import {
+  buildMvpReadinessChecklist,
+  getEmptyStateContent
+} from "../shared/mvp-readiness";
 import type {
   FileTreeEntry,
   LibrarySkillSummary,
@@ -19,7 +24,31 @@ const rpc = Electroview.defineRPC<ShellRPCSchema>({
   }
 });
 
+type ShellPage = "dashboard" | "library" | "sync" | "settings";
+
+function EmptyStateCard(props: {
+  stateKey:
+    | "library-skills"
+    | "skill-detail"
+    | "sync-jobs"
+    | "sync-conflicts"
+    | "deployments"
+    | "file-tree"
+    | "skill-markdown"
+    | "git-history";
+}): React.JSX.Element {
+  const copy = getEmptyStateContent(props.stateKey);
+
+  return (
+    <div className="empty-state-card">
+      <strong>{copy.title}</strong>
+      <p>{copy.detail}</p>
+    </div>
+  );
+}
+
 function App(): React.JSX.Element {
+  const [activePage, setActivePage] = React.useState<ShellPage>("dashboard");
   const [state, setState] = React.useState<BootstrapState | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
@@ -44,6 +73,13 @@ function App(): React.JSX.Element {
   const [selectedSkillDetail, setSelectedSkillDetail] = React.useState<SkillDetail | null>(null);
   const [detailLoading, setDetailLoading] = React.useState(false);
   const [savingMetadata, setSavingMetadata] = React.useState(false);
+  const [settingsErrors, setSettingsErrors] = React.useState<Record<
+    "codexGlobal" | "claudeGlobal",
+    string | null
+  >>({
+    codexGlobal: null,
+    claudeGlobal: null
+  });
   const [metadataDraft, setMetadataDraft] = React.useState({
     displayName: "",
     description: ""
@@ -298,6 +334,13 @@ function App(): React.JSX.Element {
     setSavingSettings(true);
     setScanError(null);
 
+    const validation = validateSettingsInput(agentPaths);
+    setSettingsErrors(validation);
+    if (validation.codexGlobal || validation.claudeGlobal) {
+      setSavingSettings(false);
+      return;
+    }
+
     try {
       await rpc.request.updateAgentPaths(agentPaths);
       await refreshState();
@@ -440,6 +483,10 @@ function App(): React.JSX.Element {
   }
 
   const tone = state?.status ?? "ready";
+  const dashboardSummary =
+    state != null ? computeDashboardSummary(state, librarySkills, syncStatus) : null;
+  const readinessChecklist =
+    state != null ? buildMvpReadinessChecklist(state, librarySkills, syncStatus) : [];
 
   function renderFileTree(entries: FileTreeEntry[]): React.JSX.Element {
     return (
@@ -479,6 +526,26 @@ function App(): React.JSX.Element {
         </div>
       </section>
 
+      {state && (
+        <nav className="top-nav">
+          {([
+            ["dashboard", "Dashboard"],
+            ["library", "Skills Library"],
+            ["sync", "Sync Center"],
+            ["settings", "Settings"]
+          ] as const).map(([page, label]) => (
+            <button
+              key={page}
+              type="button"
+              className={`top-nav-button ${activePage === page ? "top-nav-button-active" : ""}`}
+              onClick={() => setActivePage(page)}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+      )}
+
       {loading && (
         <section className="panel">
           <h2>Starting SkillKeeper</h2>
@@ -493,8 +560,36 @@ function App(): React.JSX.Element {
         </section>
       )}
 
+      {scanError && (
+        <section className="panel panel-error">
+          <h2>Action failed</h2>
+          <p>{scanError}</p>
+        </section>
+      )}
+
       {state && (
         <div className="panel-grid">
+          {activePage === "dashboard" && dashboardSummary && (
+            <section className="panel panel-wide">
+              <h2>Dashboard</h2>
+              <div className="summary-grid">
+                <article className="summary-card">
+                  <span>Total Skills</span>
+                  <strong>{dashboardSummary.totalSkills}</strong>
+                </article>
+                <article className="summary-card">
+                  <span>Git Updates</span>
+                  <strong>{dashboardSummary.gitUpdates}</strong>
+                </article>
+                <article className="summary-card">
+                  <span>Sync Status</span>
+                  <strong>{dashboardSummary.syncLabel}</strong>
+                </article>
+              </div>
+            </section>
+          )}
+
+          {activePage === "dashboard" && (
           <section className={`panel ${state.status === "error" ? "panel-error" : state.status === "warning" ? "panel-warning" : "panel-success"}`}>
             <h2>Application readiness</h2>
             <p>
@@ -515,7 +610,26 @@ function App(): React.JSX.Element {
               )}
             </ul>
           </section>
+          )}
 
+          {activePage === "dashboard" && (
+          <section className="panel">
+            <h2>MVP Acceptance Checklist</h2>
+            <ul className="acceptance-list">
+              {readinessChecklist.map((item) => (
+                <li key={item.id} className={`acceptance-item acceptance-item-${item.status}`}>
+                  <div className="acceptance-item-head">
+                    <strong>{item.label}</strong>
+                    <span className="status-pill">{item.status}</span>
+                  </div>
+                  <p>{item.detail}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+          )}
+
+          {activePage === "dashboard" && (
           <section className="panel">
             <h2>Managed paths</h2>
             <dl className="kv-grid">
@@ -537,7 +651,9 @@ function App(): React.JSX.Element {
               </div>
             </dl>
           </section>
+          )}
 
+          {activePage === "dashboard" && (
           <section className="panel">
             <h2>Git readiness</h2>
             <dl className="kv-grid">
@@ -559,9 +675,11 @@ function App(): React.JSX.Element {
               </div>
             </dl>
           </section>
+          )}
 
+          {activePage === "settings" && (
           <section className="panel">
-            <h2>Baseline settings</h2>
+            <h2>Settings</h2>
             <dl className="kv-grid">
               <div>
                 <dt>Loaded from disk</dt>
@@ -579,6 +697,9 @@ function App(): React.JSX.Element {
                       }))
                     }
                   />
+                  {settingsErrors.codexGlobal && (
+                    <span className="field-error">{settingsErrors.codexGlobal}</span>
+                  )}
                 </dd>
               </div>
               <div>
@@ -593,6 +714,9 @@ function App(): React.JSX.Element {
                       }))
                     }
                   />
+                  {settingsErrors.claudeGlobal && (
+                    <span className="field-error">{settingsErrors.claudeGlobal}</span>
+                  )}
                 </dd>
               </div>
               <div>
@@ -616,7 +740,19 @@ function App(): React.JSX.Element {
               </button>
             </div>
           </section>
+          )}
 
+          {activePage === "settings" && (
+            <section className="panel">
+              <h2>Git Authentication</h2>
+              <p>
+                SkillKeeper uses your system Git configuration and credentials. No Git
+                usernames, passwords, tokens, or SSH keys are stored in-app.
+              </p>
+            </section>
+          )}
+
+          {activePage === "sync" && (
           <section className="panel">
             <h2>Library Sync Repo</h2>
             <dl className="kv-grid">
@@ -666,7 +802,7 @@ function App(): React.JSX.Element {
                   ))}
                 </ul>
               ) : (
-                <p>No library sync jobs yet.</p>
+                <EmptyStateCard stateKey="sync-jobs" />
               )}
             </div>
             <div className="sync-jobs">
@@ -707,11 +843,13 @@ function App(): React.JSX.Element {
                   </div>
                 </>
               ) : (
-                <p>No unresolved library sync conflicts.</p>
+                <EmptyStateCard stateKey="sync-conflicts" />
               )}
             </div>
           </section>
+          )}
 
+          {activePage === "library" && (
           <section className="panel panel-wide">
             <h2>Skill import intake</h2>
             <p>
@@ -751,8 +889,6 @@ function App(): React.JSX.Element {
                 {scanning ? "Cloning..." : "Clone & Scan Repository"}
               </button>
             </div>
-
-            {scanError && <p className="error-copy">{scanError}</p>}
 
             {scanResult && (
               <div className="scan-results">
@@ -847,10 +983,12 @@ function App(): React.JSX.Element {
               </div>
             )}
           </section>
+          )}
 
+          {activePage === "library" && (
           <section className="panel panel-wide">
             <h2>Library skills</h2>
-            {librarySkills.length === 0 && <p>No skills have been imported yet.</p>}
+            {librarySkills.length === 0 && <EmptyStateCard stateKey="library-skills" />}
             {librarySkills.length > 0 && (
               <div className="library-layout">
                 <div className="library-list">
@@ -887,7 +1025,7 @@ function App(): React.JSX.Element {
 
                 <div className="detail-stack">
                   {detailLoading && <p>Loading skill detail...</p>}
-                  {!detailLoading && !selectedSkillDetail && <p>Select a skill to view details.</p>}
+                  {!detailLoading && !selectedSkillDetail && <EmptyStateCard stateKey="skill-detail" />}
                   {selectedSkillDetail && (
                     <>
                       <section className="candidate-card">
@@ -1000,7 +1138,7 @@ function App(): React.JSX.Element {
                             );
                           })}
                           {selectedSkillDetail.deployments.length === 0 && (
-                            <p>No installed agents for this skill yet.</p>
+                            <EmptyStateCard stateKey="deployments" />
                           )}
                         </article>
 
@@ -1029,7 +1167,7 @@ function App(): React.JSX.Element {
                           {selectedSkillDetail.fileTree.length > 0 ? (
                             renderFileTree(selectedSkillDetail.fileTree)
                           ) : (
-                            <p>No files found in the library copy.</p>
+                            <EmptyStateCard stateKey="file-tree" />
                           )}
                         </article>
 
@@ -1040,7 +1178,7 @@ function App(): React.JSX.Element {
                               {selectedSkillDetail.skillMarkdownPreview}
                             </pre>
                           ) : (
-                            <p>No SKILL.md found in the library copy.</p>
+                            <EmptyStateCard stateKey="skill-markdown" />
                           )}
                         </article>
                       </section>
@@ -1056,7 +1194,7 @@ function App(): React.JSX.Element {
                             ))}
                           </ul>
                         ) : (
-                          <p>No Git history available for this skill.</p>
+                          <EmptyStateCard stateKey="git-history" />
                         )}
                       </section>
                     </>
@@ -1065,6 +1203,7 @@ function App(): React.JSX.Element {
               </div>
             )}
           </section>
+          )}
         </div>
       )}
     </main>

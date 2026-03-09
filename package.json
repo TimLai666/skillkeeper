@@ -7,7 +7,8 @@
     "dev": "electrobun dev",
     "build": "electrobun build",
     "typecheck": "bunx tsc --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "readiness:report": "bun run src/bun/mvp/readiness-report.ts"
   },
   "dependencies": {
     "electrobun": "^1.15.1",

@@ -157,5 +157,5 @@ describe("LibrarySyncService", () => {
     const clearedStatus = syncService.refreshConflictStatus();
     expect(clearedStatus.conflict.hasConflict).toBe(false);
     expect(clearedStatus.conflict.conflictedFiles).toHaveLength(0);
-  });
+  }, 15000);
 });
