@@ -8,6 +8,7 @@ import type {
   LibrarySkillSummary,
   SkillDetail
 } from "../shared/library-management";
+import type { LibrarySyncStatus } from "../shared/library-sync";
 import type { ImportCommitResult, ImportScanResult } from "../shared/imports";
 import type { GitBindingRecord, PlatformName } from "../shared/library";
 
@@ -34,6 +35,10 @@ function App(): React.JSX.Element {
   const [trackedRepositories, setTrackedRepositories] = React.useState<GitBindingRecord[]>([]);
   const [librarySkills, setLibrarySkills] = React.useState<LibrarySkillSummary[]>([]);
   const [savingSettings, setSavingSettings] = React.useState(false);
+  const [syncStatus, setSyncStatus] = React.useState<LibrarySyncStatus | null>(null);
+  const [syncRemoteUrl, setSyncRemoteUrl] = React.useState("");
+  const [savingSyncSettings, setSavingSyncSettings] = React.useState(false);
+  const [syncingLibraryRepo, setSyncingLibraryRepo] = React.useState(false);
   const [actionInFlight, setActionInFlight] = React.useState<string | null>(null);
   const [selectedSkillId, setSelectedSkillId] = React.useState<string | null>(null);
   const [selectedSkillDetail, setSelectedSkillDetail] = React.useState<SkillDetail | null>(null);
@@ -53,6 +58,12 @@ function App(): React.JSX.Element {
       setAgentPaths(state.settings.agentPaths);
     }
   }, [state]);
+
+  React.useEffect(() => {
+    if (syncStatus) {
+      setSyncRemoteUrl(syncStatus.repo.remoteUrl ?? "");
+    }
+  }, [syncStatus]);
 
   React.useEffect(() => {
     if (librarySkills.length === 0) {
@@ -109,13 +120,15 @@ function App(): React.JSX.Element {
     Promise.all([
       rpc.request.getBootstrapState(),
       rpc.request.listTrackedRepositories(),
-      rpc.request.listLibrarySkills()
+      rpc.request.listLibrarySkills(),
+      rpc.request.getLibrarySyncStatus()
     ])
-      .then(([nextState, repositories, skills]) => {
+      .then(([nextState, repositories, skills, nextSyncStatus]) => {
         if (active) {
           setState(nextState);
           setTrackedRepositories(repositories);
           setLibrarySkills(skills);
+          setSyncStatus(nextSyncStatus);
           setTransportError(null);
         }
       })
@@ -141,14 +154,16 @@ function App(): React.JSX.Element {
     setRefreshing(true);
 
     try {
-      const [nextState, repositories, skills] = await Promise.all([
+      const [nextState, repositories, skills, nextSyncStatus] = await Promise.all([
         rpc.request.refreshBootstrapState(),
         rpc.request.listTrackedRepositories(),
-        rpc.request.listLibrarySkills()
+        rpc.request.listLibrarySkills(),
+        rpc.request.getLibrarySyncStatus()
       ]);
       setState(nextState);
       setTrackedRepositories(repositories);
       setLibrarySkills(skills);
+      setSyncStatus(nextSyncStatus);
       setTransportError(null);
     } catch (error) {
       setTransportError(
@@ -290,6 +305,50 @@ function App(): React.JSX.Element {
       setScanError(error instanceof Error ? error.message : "Failed to save agent paths.");
     } finally {
       setSavingSettings(false);
+    }
+  }
+
+  async function initializeLibraryRepo() {
+    setSavingSyncSettings(true);
+    setScanError(null);
+
+    try {
+      await rpc.request.initializeLibraryRepo({
+        remoteUrl: syncRemoteUrl.trim() || null
+      });
+      await refreshState();
+    } catch (error) {
+      setScanError(error instanceof Error ? error.message : "Failed to initialize the Library Repo.");
+    } finally {
+      setSavingSyncSettings(false);
+    }
+  }
+
+  async function saveAutoSyncSetting(autoSyncEnabled: boolean) {
+    setSavingSyncSettings(true);
+    setScanError(null);
+
+    try {
+      await rpc.request.updateAutoSyncSetting({ autoSyncEnabled });
+      await refreshState();
+    } catch (error) {
+      setScanError(error instanceof Error ? error.message : "Failed to update auto-sync.");
+    } finally {
+      setSavingSyncSettings(false);
+    }
+  }
+
+  async function runManualLibrarySync() {
+    setSyncingLibraryRepo(true);
+    setScanError(null);
+
+    try {
+      await rpc.request.syncLibraryRepo({ message: "Manual library sync" });
+      await refreshState();
+    } catch (error) {
+      setScanError(error instanceof Error ? error.message : "Failed to sync the Library Repo.");
+    } finally {
+      setSyncingLibraryRepo(false);
     }
   }
 
@@ -503,13 +562,77 @@ function App(): React.JSX.Element {
               </div>
               <div>
                 <dt>Auto-sync</dt>
-                <dd>{state.settings.sync.autoSyncEnabled ? "Enabled" : "Disabled"}</dd>
+                <dd>
+                  <label className="toggle-row">
+                    <input
+                      type="checkbox"
+                      checked={state.settings.sync.autoSyncEnabled}
+                      onChange={(event) => saveAutoSyncSetting(event.target.checked)}
+                      disabled={savingSyncSettings}
+                    />
+                    <span>{state.settings.sync.autoSyncEnabled ? "Enabled" : "Disabled"}</span>
+                  </label>
+                </dd>
               </div>
             </dl>
             <div className="import-controls">
               <button type="button" onClick={savePaths} disabled={savingSettings}>
                 {savingSettings ? "Saving..." : "Save Agent Paths"}
               </button>
+            </div>
+          </section>
+
+          <section className="panel">
+            <h2>Library Sync Repo</h2>
+            <dl className="kv-grid">
+              <div>
+                <dt>Repo path</dt>
+                <dd>{syncStatus?.repo.repoPath ?? state.managedPaths.library}</dd>
+              </div>
+              <div>
+                <dt>Status</dt>
+                <dd>{syncStatus?.repo.isInitialized ? "Initialized" : "Not initialized"}</dd>
+              </div>
+              <div>
+                <dt>Branch</dt>
+                <dd>{syncStatus?.repo.defaultBranch ?? "main"}</dd>
+              </div>
+              <div>
+                <dt>Remote URL</dt>
+                <dd>
+                  <input
+                    value={syncRemoteUrl}
+                    onChange={(event) => setSyncRemoteUrl(event.target.value)}
+                    placeholder="Optional remote URL for cross-device sync"
+                  />
+                </dd>
+              </div>
+            </dl>
+            <div className="import-controls">
+              <button type="button" onClick={initializeLibraryRepo} disabled={savingSyncSettings}>
+                {savingSyncSettings ? "Saving..." : "Init / Connect Library Repo"}
+              </button>
+              <button
+                type="button"
+                onClick={runManualLibrarySync}
+                disabled={syncingLibraryRepo || !syncStatus?.repo.isInitialized}
+              >
+                {syncingLibraryRepo ? "Syncing..." : "Manual Sync"}
+              </button>
+            </div>
+            <div className="sync-jobs">
+              <h3>Recent Sync Jobs</h3>
+              {syncStatus && syncStatus.recentJobs.length > 0 ? (
+                <ul className="history-list">
+                  {syncStatus.recentJobs.slice(0, 5).map((job) => (
+                    <li key={job.id}>
+                      <code>{job.status}</code> {job.detail ?? "No detail"} · {job.startedAt}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No library sync jobs yet.</p>
+              )}
             </div>
           </section>
 

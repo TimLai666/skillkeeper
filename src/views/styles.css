@@ -179,6 +179,16 @@ button:disabled {
   color: var(--text);
 }
 
+.toggle-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.toggle-row input {
+  width: auto;
+}
+
 .issues-list {
   margin: 1rem 0 0;
   padding-left: 1.1rem;
@@ -284,6 +294,15 @@ button:disabled {
 
 .tracked-repos h3 {
   margin: 0 0 0.8rem;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.sync-jobs {
+  margin-top: 1rem;
+}
+
+.sync-jobs h3 {
+  margin: 0 0 0.75rem;
   font-family: Georgia, "Times New Roman", serif;
 }
 

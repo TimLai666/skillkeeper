@@ -41,6 +41,7 @@ interface CreatePlatformBindingInput {
 }
 
 interface CreateSyncJobInput {
+  id?: string;
   targetScope: SyncJobRecord["targetScope"];
   targetId?: string | null;
   status?: SyncJobRecord["status"];
@@ -395,7 +396,7 @@ export class LibraryStore {
 
   createSyncJob(input: CreateSyncJobInput): SyncJobRecord {
     const syncJob: SyncJobRecord = {
-      id: randomUUID(),
+      id: input.id ?? randomUUID(),
       targetScope: input.targetScope,
       targetId: input.targetId ?? null,
       status: input.status ?? "pending",
@@ -423,10 +424,54 @@ export class LibraryStore {
     return syncJob;
   }
 
+  updateSyncJob(
+    id: string,
+    updates: {
+      status: SyncJobRecord["status"];
+      completedAt?: string | null;
+      detail?: string | null;
+    }
+  ): SyncJobRecord | null {
+    const current = this.database
+      .query("SELECT * FROM sync_jobs WHERE id = ?")
+      .get(id) as Record<string, unknown> | null;
+
+    if (!current) {
+      return null;
+    }
+
+    const next: SyncJobRecord = {
+      id: String(current.id),
+      targetScope: current.target_scope as SyncJobRecord["targetScope"],
+      targetId: current.target_id == null ? null : String(current.target_id),
+      status: updates.status,
+      startedAt: String(current.started_at),
+      completedAt:
+        updates.completedAt === undefined
+          ? (current.completed_at == null ? null : String(current.completed_at))
+          : updates.completedAt,
+      detail: updates.detail === undefined ? (current.detail == null ? null : String(current.detail)) : updates.detail
+    };
+
+    this.database
+      .query("UPDATE sync_jobs SET status = ?, completed_at = ?, detail = ? WHERE id = ?")
+      .run(next.status, next.completedAt, next.detail, id);
+
+    return next;
+  }
+
   listSyncJobs(): SyncJobRecord[] {
     const rows = this.database
       .query("SELECT * FROM sync_jobs ORDER BY started_at DESC")
       .all() as Record<string, unknown>[];
+
+    return rows.map(mapSyncJobRecord);
+  }
+
+  listSyncJobsByScope(targetScope: SyncJobRecord["targetScope"]): SyncJobRecord[] {
+    const rows = this.database
+      .query("SELECT * FROM sync_jobs WHERE target_scope = ? ORDER BY started_at DESC")
+      .all(targetScope) as Record<string, unknown>[];
 
     return rows.map(mapSyncJobRecord);
   }

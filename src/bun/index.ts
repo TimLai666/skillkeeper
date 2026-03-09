@@ -7,10 +7,19 @@ import { ImportManager } from "./imports/service";
 import { LibraryManagementService } from "./library/management";
 import { initializeLibraryStore } from "./library/store";
 import { refreshTrackedRepositoryStatus } from "./git/source-repos";
+import { LibrarySyncService } from "./sync/service";
 
 let bootstrapState = bootstrapApplication();
-let importManager = new ImportManager(bootstrapState.managedPaths);
-let deploymentService = new DeploymentService(bootstrapState.managedPaths);
+let librarySyncService = new LibrarySyncService(bootstrapState.managedPaths);
+const syncAfterMutation = (message: string) => {
+  librarySyncService.syncAfterMutationIfEnabled(bootstrapState.settings, message);
+};
+let importManager = new ImportManager(bootstrapState.managedPaths, {
+  onLibraryMutation: syncAfterMutation
+});
+let deploymentService = new DeploymentService(bootstrapState.managedPaths, {
+  onLibraryMutation: syncAfterMutation
+});
 let libraryManagementService = new LibraryManagementService(bootstrapState.managedPaths);
 
 function listLibrarySkills(): LibrarySkillSummary[] {
@@ -23,8 +32,13 @@ const rpc = BrowserView.defineRPC<ShellRPCSchema>({
       getBootstrapState: () => bootstrapState,
       refreshBootstrapState: () => {
         bootstrapState = bootstrapApplication();
-        importManager = new ImportManager(bootstrapState.managedPaths);
-        deploymentService = new DeploymentService(bootstrapState.managedPaths);
+        librarySyncService = new LibrarySyncService(bootstrapState.managedPaths);
+        importManager = new ImportManager(bootstrapState.managedPaths, {
+          onLibraryMutation: syncAfterMutation
+        });
+        deploymentService = new DeploymentService(bootstrapState.managedPaths, {
+          onLibraryMutation: syncAfterMutation
+        });
         libraryManagementService = new LibraryManagementService(bootstrapState.managedPaths);
         return bootstrapState;
       },
@@ -89,6 +103,27 @@ const rpc = BrowserView.defineRPC<ShellRPCSchema>({
           displayName,
           description
         });
+      },
+      getLibrarySyncStatus: () => librarySyncService.getLibrarySyncStatus(),
+      initializeLibraryRepo: (params?: unknown) => {
+        const { remoteUrl } = params as { remoteUrl: string | null };
+        return librarySyncService.initializeLibraryRepo(remoteUrl);
+      },
+      syncLibraryRepo: (params?: unknown) => {
+        const { message } = params as { message: string };
+        return librarySyncService.syncLibraryRepo(message);
+      },
+      updateAutoSyncSetting: (params?: unknown) => {
+        const { autoSyncEnabled } = params as { autoSyncEnabled: boolean };
+        bootstrapState.settings = saveAppSettings(bootstrapState.managedPaths, {
+          ...bootstrapState.settings,
+          sync: {
+            ...bootstrapState.settings.sync,
+            autoSyncEnabled
+          }
+        });
+
+        return bootstrapState.settings;
       },
       updateAgentPaths: (params?: unknown) => {
         const { codexGlobal, claudeGlobal } = params as {

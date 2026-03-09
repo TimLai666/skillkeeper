@@ -4,6 +4,10 @@ import type { AppSettings, ManagedPaths } from "../../shared/bootstrap";
 import type { PlatformBindingRecord, PlatformName } from "../../shared/library";
 import { initializeLibraryStore } from "../library/store";
 
+interface DeploymentServiceOptions {
+  onLibraryMutation?: (message: string) => void;
+}
+
 function getPlatformLabel(platform: PlatformName): string {
   return platform === "codex" ? "Codex" : "Claude Code";
 }
@@ -15,7 +19,10 @@ function resolveAgentRoot(settings: AppSettings, platform: PlatformName): string
 }
 
 export class DeploymentService {
-  constructor(private readonly managedPaths: ManagedPaths) {}
+  constructor(
+    private readonly managedPaths: ManagedPaths,
+    private readonly options: DeploymentServiceOptions = {}
+  ) {}
 
   installSkill(
     skillId: string,
@@ -71,6 +78,7 @@ export class DeploymentService {
 
       rmSync(skill.libraryPath, { recursive: true, force: true });
       store.deleteSkill(skillId);
+      this.options.onLibraryMutation?.("Delete skill from library");
       return { skillId };
     } finally {
       store.close();

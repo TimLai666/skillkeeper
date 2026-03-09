@@ -31,6 +31,10 @@ interface ImportSession {
   gitBindingId: string | null;
 }
 
+interface ImportManagerOptions {
+  onLibraryMutation?: (message: string) => void;
+}
+
 function normalizeArchiveEntryPath(entryPath: string): string {
   const normalized = entryPath.replaceAll("\\", "/").replace(/^\/+/, "");
   const segments = normalized.split("/").filter(Boolean);
@@ -246,7 +250,10 @@ function parseSkillDescription(candidateRoot: string): string | null {
 export class ImportManager {
   private readonly sessions = new Map<string, ImportSession>();
 
-  constructor(private readonly managedPaths: ManagedPaths) {}
+  constructor(
+    private readonly managedPaths: ManagedPaths,
+    private readonly options: ImportManagerOptions = {}
+  ) {}
 
   async scanSource(sourcePath: string): Promise<ImportScanResult> {
     const { sourceKind, archiveFormat } = detectSourceKind(sourcePath);
@@ -402,6 +409,10 @@ export class ImportManager {
       }
     } finally {
       store.close();
+    }
+
+    if (result.imported.length > 0) {
+      this.options.onLibraryMutation?.("Import skills into library");
     }
 
     return result;

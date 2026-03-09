@@ -1,6 +1,7 @@
 import type { ElectrobunRPCSchema } from "electrobun";
 import type { AppSettings, BootstrapState } from "./bootstrap";
 import type { LibrarySkillSummary, SkillDeletionResult, SkillDetail } from "./library-management";
+import type { LibraryRepoState, LibrarySyncStatus } from "./library-sync";
 import type {
   ImportCommitResult,
   ImportDialogKind,
@@ -74,6 +75,28 @@ export type ShellRPCSchema = ElectrobunRPCSchema & {
           description: string | null;
         };
         response: SkillDetail;
+      };
+      getLibrarySyncStatus: {
+        params: undefined;
+        response: LibrarySyncStatus;
+      };
+      initializeLibraryRepo: {
+        params: {
+          remoteUrl: string | null;
+        };
+        response: LibraryRepoState;
+      };
+      syncLibraryRepo: {
+        params: {
+          message: string;
+        };
+        response: import("./library").SyncJobRecord;
+      };
+      updateAutoSyncSetting: {
+        params: {
+          autoSyncEnabled: boolean;
+        };
+        response: AppSettings;
       };
       updateAgentPaths: {
         params: {
