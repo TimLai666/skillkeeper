@@ -1,27 +1,20 @@
 import { BrowserView, BrowserWindow, Utils } from "electrobun";
 import type { ShellRPCSchema } from "../shared/bootstrap-rpc";
 import { bootstrapApplication, saveAppSettings } from "./bootstrap/runtime";
-import type { LibrarySkillSummary } from "../shared/deployment";
+import type { LibrarySkillSummary } from "../shared/library-management";
 import { DeploymentService } from "./deployment/service";
 import { ImportManager } from "./imports/service";
+import { LibraryManagementService } from "./library/management";
 import { initializeLibraryStore } from "./library/store";
 import { refreshTrackedRepositoryStatus } from "./git/source-repos";
 
 let bootstrapState = bootstrapApplication();
 let importManager = new ImportManager(bootstrapState.managedPaths);
 let deploymentService = new DeploymentService(bootstrapState.managedPaths);
+let libraryManagementService = new LibraryManagementService(bootstrapState.managedPaths);
 
 function listLibrarySkills(): LibrarySkillSummary[] {
-  const store = initializeLibraryStore(bootstrapState.managedPaths);
-
-  try {
-    return store.listSkills().map((skill) => ({
-      skill,
-      deployments: store.listPlatformBindingsForSkill(skill.id)
-    }));
-  } finally {
-    store.close();
-  }
+  return libraryManagementService.listSkillSummaries();
 }
 
 const rpc = BrowserView.defineRPC<ShellRPCSchema>({
@@ -32,6 +25,7 @@ const rpc = BrowserView.defineRPC<ShellRPCSchema>({
         bootstrapState = bootstrapApplication();
         importManager = new ImportManager(bootstrapState.managedPaths);
         deploymentService = new DeploymentService(bootstrapState.managedPaths);
+        libraryManagementService = new LibraryManagementService(bootstrapState.managedPaths);
         return bootstrapState;
       },
       pickImportSource: async (params?: unknown) => {
@@ -81,6 +75,21 @@ const rpc = BrowserView.defineRPC<ShellRPCSchema>({
         return refreshTrackedRepositoryStatus(gitBindingId, bootstrapState.managedPaths);
       },
       listLibrarySkills: () => listLibrarySkills(),
+      getSkillDetail: (params?: unknown) => {
+        const { skillId } = params as { skillId: string };
+        return libraryManagementService.getSkillDetail(skillId);
+      },
+      updateSkillMetadata: (params?: unknown) => {
+        const { skillId, displayName, description } = params as {
+          skillId: string;
+          displayName: string;
+          description: string | null;
+        };
+        return libraryManagementService.updateSkillMetadata(skillId, {
+          displayName,
+          description
+        });
+      },
       updateAgentPaths: (params?: unknown) => {
         const { codexGlobal, claudeGlobal } = params as {
           codexGlobal: string;

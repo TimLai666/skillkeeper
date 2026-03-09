@@ -287,6 +287,11 @@ button:disabled {
   font-family: Georgia, "Times New Roman", serif;
 }
 
+.candidate-card h3 {
+  margin: 0 0 0.85rem;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
 .repo-row {
   display: flex;
   justify-content: space-between;
@@ -316,6 +321,64 @@ button:disabled {
   gap: 0.9rem;
 }
 
+.library-layout {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.library-list,
+.detail-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.library-table {
+  display: grid;
+  grid-template-columns: 1.1fr 1.6fr 0.8fr 0.8fr 1fr 1fr;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.library-table span {
+  overflow-wrap: anywhere;
+}
+
+.library-table-head {
+  padding: 0 0.25rem 0.35rem;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.library-table-row {
+  width: 100%;
+  text-align: left;
+  border-radius: 18px;
+  padding: 1rem;
+  border: 1px solid rgba(92, 67, 37, 0.12);
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--text);
+}
+
+.library-table-row-active {
+  border-color: rgba(40, 90, 63, 0.28);
+  box-shadow: inset 0 0 0 1px rgba(40, 90, 63, 0.18);
+}
+
+.detail-stack .candidate-card {
+  margin: 0;
+}
+
+.detail-two-column {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
 .deployment-column {
   border: 1px solid rgba(92, 67, 37, 0.1);
   border-radius: 16px;
@@ -334,6 +397,63 @@ button:disabled {
   text-transform: capitalize;
 }
 
+.detail-form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.detail-form label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--muted);
+}
+
+.detail-form input,
+.detail-form textarea {
+  width: 100%;
+  border: 1px solid rgba(92, 67, 37, 0.15);
+  border-radius: 16px;
+  padding: 0.8rem 0.95rem;
+  font: inherit;
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--text);
+}
+
+.detail-form textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.tree-list,
+.history-list {
+  margin: 0;
+  padding-left: 1rem;
+  line-height: 1.6;
+}
+
+.tree-list ul {
+  margin-top: 0.35rem;
+}
+
+.tree-entry-directory {
+  color: var(--warning);
+}
+
+.tree-entry-file {
+  color: var(--muted);
+}
+
+.markdown-preview {
+  margin: 0;
+  padding: 1rem;
+  border-radius: 16px;
+  background: rgba(31, 28, 23, 0.06);
+  overflow: auto;
+  white-space: pre-wrap;
+  line-height: 1.55;
+  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+}
+
 @media (max-width: 860px) {
   .app-shell {
     padding: 1.25rem;
@@ -348,7 +468,17 @@ button:disabled {
     border-radius: 22px;
   }
 
+  .library-layout,
+  .detail-two-column,
   .skill-deployments {
     grid-template-columns: 1fr;
+  }
+
+  .library-table {
+    grid-template-columns: 1fr;
+  }
+
+  .library-table-head {
+    display: none;
   }
 }

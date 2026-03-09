@@ -1,6 +1,6 @@
 import type { ElectrobunRPCSchema } from "electrobun";
 import type { AppSettings, BootstrapState } from "./bootstrap";
-import type { LibrarySkillSummary, SkillDeletionResult } from "./deployment";
+import type { LibrarySkillSummary, SkillDeletionResult, SkillDetail } from "./library-management";
 import type {
   ImportCommitResult,
   ImportDialogKind,
@@ -60,6 +60,20 @@ export type ShellRPCSchema = ElectrobunRPCSchema & {
       listLibrarySkills: {
         params: undefined;
         response: LibrarySkillSummary[];
+      };
+      getSkillDetail: {
+        params: {
+          skillId: string;
+        };
+        response: SkillDetail;
+      };
+      updateSkillMetadata: {
+        params: {
+          skillId: string;
+          displayName: string;
+          description: string | null;
+        };
+        response: SkillDetail;
       };
       updateAgentPaths: {
         params: {

@@ -3,9 +3,13 @@ import { createRoot } from "react-dom/client";
 import { Electroview } from "electrobun/view";
 import type { AppSettings, BootstrapState } from "../shared/bootstrap";
 import type { ShellRPCSchema } from "../shared/bootstrap-rpc";
-import type { LibrarySkillSummary } from "../shared/deployment";
+import type {
+  FileTreeEntry,
+  LibrarySkillSummary,
+  SkillDetail
+} from "../shared/library-management";
 import type { ImportCommitResult, ImportScanResult } from "../shared/imports";
-import type { GitBindingRecord, PlatformBindingRecord, PlatformName } from "../shared/library";
+import type { GitBindingRecord, PlatformName } from "../shared/library";
 
 const rpc = Electroview.defineRPC<ShellRPCSchema>({
   handlers: {
@@ -31,6 +35,14 @@ function App(): React.JSX.Element {
   const [librarySkills, setLibrarySkills] = React.useState<LibrarySkillSummary[]>([]);
   const [savingSettings, setSavingSettings] = React.useState(false);
   const [actionInFlight, setActionInFlight] = React.useState<string | null>(null);
+  const [selectedSkillId, setSelectedSkillId] = React.useState<string | null>(null);
+  const [selectedSkillDetail, setSelectedSkillDetail] = React.useState<SkillDetail | null>(null);
+  const [detailLoading, setDetailLoading] = React.useState(false);
+  const [savingMetadata, setSavingMetadata] = React.useState(false);
+  const [metadataDraft, setMetadataDraft] = React.useState({
+    displayName: "",
+    description: ""
+  });
   const [agentPaths, setAgentPaths] = React.useState<AppSettings["agentPaths"]>({
     codexGlobal: "",
     claudeGlobal: ""
@@ -41,6 +53,55 @@ function App(): React.JSX.Element {
       setAgentPaths(state.settings.agentPaths);
     }
   }, [state]);
+
+  React.useEffect(() => {
+    if (librarySkills.length === 0) {
+      setSelectedSkillId(null);
+      setSelectedSkillDetail(null);
+      return;
+    }
+
+    if (!selectedSkillId || !librarySkills.some((entry) => entry.skill.id === selectedSkillId)) {
+      setSelectedSkillId(librarySkills[0]?.skill.id ?? null);
+    }
+  }, [librarySkills, selectedSkillId]);
+
+  React.useEffect(() => {
+    if (!selectedSkillId) {
+      setSelectedSkillDetail(null);
+      return;
+    }
+
+    let active = true;
+    setDetailLoading(true);
+
+    rpc.request
+      .getSkillDetail({ skillId: selectedSkillId })
+      .then((detail) => {
+        if (active) {
+          setSelectedSkillDetail(detail);
+          setMetadataDraft({
+            displayName: detail.skill.displayName,
+            description: detail.skill.description ?? ""
+          });
+        }
+      })
+      .catch((error) => {
+        if (active) {
+          setScanError(error instanceof Error ? error.message : "Failed to load skill detail.");
+          setSelectedSkillDetail(null);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setDetailLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedSkillId]);
 
   React.useEffect(() => {
     let active = true;
@@ -232,13 +293,28 @@ function App(): React.JSX.Element {
     }
   }
 
-  function getDeployment(
-    skillSummary: LibrarySkillSummary,
-    platform: PlatformName
-  ): PlatformBindingRecord | undefined {
-    return skillSummary.deployments
-      .filter((deployment) => deployment.platform === platform)
-      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0];
+  async function saveMetadata() {
+    if (!selectedSkillDetail) {
+      return;
+    }
+
+    setSavingMetadata(true);
+    setScanError(null);
+
+    try {
+      const detail = await rpc.request.updateSkillMetadata({
+        skillId: selectedSkillDetail.skill.id,
+        displayName: metadataDraft.displayName,
+        description: metadataDraft.description.trim() || null
+      });
+
+      setSelectedSkillDetail(detail);
+      setLibrarySkills(await rpc.request.listLibrarySkills());
+    } catch (error) {
+      setScanError(error instanceof Error ? error.message : "Failed to save metadata.");
+    } finally {
+      setSavingMetadata(false);
+    }
   }
 
   async function runDeploymentAction(
@@ -282,6 +358,21 @@ function App(): React.JSX.Element {
   }
 
   const tone = state?.status ?? "ready";
+
+  function renderFileTree(entries: FileTreeEntry[]): React.JSX.Element {
+    return (
+      <ul className="tree-list">
+        {entries.map((entry) => (
+          <li key={entry.path}>
+            <span className={`tree-entry tree-entry-${entry.type}`}>
+              {entry.type === "directory" ? "Folder" : "File"}: {entry.name}
+            </span>
+            {entry.children && entry.children.length > 0 && renderFileTree(entry.children)}
+          </li>
+        ))}
+      </ul>
+    );
+  }
 
   return (
     <main className={`app-shell tone-${tone}`}>
@@ -561,108 +652,219 @@ function App(): React.JSX.Element {
           <section className="panel panel-wide">
             <h2>Library skills</h2>
             {librarySkills.length === 0 && <p>No skills have been imported yet.</p>}
-            {librarySkills.map((entry) => {
-              const codexDeployment = getDeployment(entry, "codex");
-              const claudeDeployment = getDeployment(entry, "claude-code");
-              const codexInstalled = codexDeployment?.installStatus === "installed";
-              const claudeInstalled = claudeDeployment?.installStatus === "installed";
-
-              return (
-                <article key={entry.skill.id} className="candidate-card">
-                  <div className="repo-row">
-                    <div>
-                      <strong>{entry.skill.displayName}</strong>
-                      <small>{entry.skill.slug}</small>
-                    </div>
-                    <span className="status-pill">{entry.skill.status}</span>
+            {librarySkills.length > 0 && (
+              <div className="library-layout">
+                <div className="library-list">
+                  <div className="library-table library-table-head">
+                    <span>Name</span>
+                    <span>Description</span>
+                    <span>Source</span>
+                    <span>Git</span>
+                    <span>Installed Agents</span>
+                    <span>Last Update</span>
                   </div>
-                  <p className="repo-meta">
-                    Source: {entry.skill.sourceKind} · Updated: {entry.skill.updatedAt}
-                  </p>
-                  <div className="skill-deployments">
-                    <div className="deployment-column">
-                      <strong>Codex</strong>
-                      <small>{codexDeployment?.installStatus ?? "not installed"}</small>
-                      <div className="import-controls">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            runDeploymentAction({
-                              type: codexInstalled ? "update" : "install",
-                              skillId: entry.skill.id,
-                              platform: "codex"
-                            })
-                          }
-                          disabled={actionInFlight != null}
-                        >
-                          {codexInstalled ? "Update Codex" : "Install to Codex"}
-                        </button>
-                        {codexDeployment && codexDeployment.installStatus !== "removed" && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              runDeploymentAction({
-                                type: "uninstall",
-                                skillId: entry.skill.id,
-                                platform: "codex"
-                              })
-                            }
-                            disabled={actionInFlight != null}
-                          >
-                            Uninstall
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="deployment-column">
-                      <strong>Claude Code</strong>
-                      <small>{claudeDeployment?.installStatus ?? "not installed"}</small>
-                      <div className="import-controls">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            runDeploymentAction({
-                              type: claudeInstalled ? "update" : "install",
-                              skillId: entry.skill.id,
-                              platform: "claude-code"
-                            })
-                          }
-                          disabled={actionInFlight != null}
-                        >
-                          {claudeInstalled ? "Update Claude" : "Install to Claude"}
-                        </button>
-                        {claudeDeployment && claudeDeployment.installStatus !== "removed" && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              runDeploymentAction({
-                                type: "uninstall",
-                                skillId: entry.skill.id,
-                                platform: "claude-code"
-                              })
-                            }
-                            disabled={actionInFlight != null}
-                          >
-                            Uninstall
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="import-controls">
+                  {librarySkills.map((entry) => (
                     <button
+                      key={entry.skill.id}
                       type="button"
-                      onClick={() => runDeploymentAction({ type: "delete", skillId: entry.skill.id })}
-                      disabled={actionInFlight != null}
+                      className={`library-table library-table-row ${
+                        selectedSkillId === entry.skill.id ? "library-table-row-active" : ""
+                      }`}
+                      onClick={() => setSelectedSkillId(entry.skill.id)}
                     >
-                      Delete Skill
+                      <span>{entry.skill.displayName}</span>
+                      <span>{entry.skill.description ?? "No description"}</span>
+                      <span>{entry.skill.sourceKind}</span>
+                      <span>{entry.gitBinding?.upstreamStatus ?? "Not tracked"}</span>
+                      <span>
+                        {entry.installedAgents.length > 0
+                          ? entry.installedAgents.join(", ")
+                          : "Not installed"}
+                      </span>
+                      <span>{entry.skill.updatedAt}</span>
                     </button>
-                  </div>
-                </article>
-              );
-            })}
+                  ))}
+                </div>
+
+                <div className="detail-stack">
+                  {detailLoading && <p>Loading skill detail...</p>}
+                  {!detailLoading && !selectedSkillDetail && <p>Select a skill to view details.</p>}
+                  {selectedSkillDetail && (
+                    <>
+                      <section className="candidate-card">
+                        <div className="repo-row">
+                          <div>
+                            <strong>{selectedSkillDetail.skill.displayName}</strong>
+                            <small>{selectedSkillDetail.skill.slug}</small>
+                          </div>
+                          <span className="status-pill">{selectedSkillDetail.skill.status}</span>
+                        </div>
+                        <p className="repo-meta">
+                          Source: {selectedSkillDetail.skill.sourceKind} · Updated:{" "}
+                          {selectedSkillDetail.skill.updatedAt}
+                        </p>
+                      </section>
+
+                      <section className="candidate-card">
+                        <h3>Metadata</h3>
+                        <div className="detail-form">
+                          <label>
+                            <span>Display name</span>
+                            <input
+                              value={metadataDraft.displayName}
+                              onChange={(event) =>
+                                setMetadataDraft((current) => ({
+                                  ...current,
+                                  displayName: event.target.value
+                                }))
+                              }
+                            />
+                          </label>
+                          <label>
+                            <span>Description</span>
+                            <textarea
+                              value={metadataDraft.description}
+                              onChange={(event) =>
+                                setMetadataDraft((current) => ({
+                                  ...current,
+                                  description: event.target.value
+                                }))
+                              }
+                            />
+                          </label>
+                        </div>
+                        <div className="import-controls">
+                          <button type="button" onClick={saveMetadata} disabled={savingMetadata}>
+                            {savingMetadata ? "Saving..." : "Save Metadata"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              runDeploymentAction({
+                                type: "delete",
+                                skillId: selectedSkillDetail.skill.id
+                              })
+                            }
+                            disabled={actionInFlight != null}
+                          >
+                            Delete Skill
+                          </button>
+                        </div>
+                      </section>
+
+                      <section className="detail-two-column">
+                        <article className="candidate-card">
+                          <h3>Installed Agents</h3>
+                          {(["codex", "claude-code"] as PlatformName[]).map((platform) => {
+                            const deployment = selectedSkillDetail.deployments
+                              .filter((item) => item.platform === platform)
+                              .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0];
+                            const installed = deployment?.installStatus === "installed";
+
+                            return (
+                              <div key={platform} className="deployment-column">
+                                <strong>{platform === "codex" ? "Codex" : "Claude Code"}</strong>
+                                <small>{deployment?.installStatus ?? "Not installed"}</small>
+                                <div className="import-controls">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      runDeploymentAction({
+                                        type: installed ? "update" : "install",
+                                        skillId: selectedSkillDetail.skill.id,
+                                        platform
+                                      })
+                                    }
+                                    disabled={actionInFlight != null}
+                                  >
+                                    {installed
+                                      ? `Update ${platform === "codex" ? "Codex" : "Claude"}`
+                                      : `Install to ${platform === "codex" ? "Codex" : "Claude"}`}
+                                  </button>
+                                  {deployment && deployment.installStatus !== "removed" && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        runDeploymentAction({
+                                          type: "uninstall",
+                                          skillId: selectedSkillDetail.skill.id,
+                                          platform
+                                        })
+                                      }
+                                      disabled={actionInFlight != null}
+                                    >
+                                      Uninstall
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {selectedSkillDetail.deployments.length === 0 && (
+                            <p>No installed agents for this skill yet.</p>
+                          )}
+                        </article>
+
+                        <article className="candidate-card">
+                          <h3>Source Repository</h3>
+                          {selectedSkillDetail.gitBinding ? (
+                            <>
+                              <p className="repo-meta">
+                                {selectedSkillDetail.gitBinding.remoteUrl ??
+                                  selectedSkillDetail.gitBinding.repoPath}
+                              </p>
+                              <p className="repo-meta">
+                                Status: {selectedSkillDetail.gitBinding.upstreamStatus} · Branch:{" "}
+                                {selectedSkillDetail.gitBinding.defaultBranch ?? "unknown"}
+                              </p>
+                            </>
+                          ) : (
+                            <p>No Git tracking data for this skill.</p>
+                          )}
+                        </article>
+                      </section>
+
+                      <section className="detail-two-column">
+                        <article className="candidate-card">
+                          <h3>File Tree</h3>
+                          {selectedSkillDetail.fileTree.length > 0 ? (
+                            renderFileTree(selectedSkillDetail.fileTree)
+                          ) : (
+                            <p>No files found in the library copy.</p>
+                          )}
+                        </article>
+
+                        <article className="candidate-card">
+                          <h3>SKILL.md Preview</h3>
+                          {selectedSkillDetail.skillMarkdownPreview ? (
+                            <pre className="markdown-preview">
+                              {selectedSkillDetail.skillMarkdownPreview}
+                            </pre>
+                          ) : (
+                            <p>No SKILL.md found in the library copy.</p>
+                          )}
+                        </article>
+                      </section>
+
+                      <section className="candidate-card">
+                        <h3>Git History</h3>
+                        {selectedSkillDetail.gitHistory.length > 0 ? (
+                          <ul className="history-list">
+                            {selectedSkillDetail.gitHistory.map((entry) => (
+                              <li key={entry.commitHash}>
+                                <code>{entry.commitHash}</code> {entry.summary}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p>No Git history available for this skill.</p>
+                        )}
+                      </section>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </section>
         </div>
       )}
