@@ -2,8 +2,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { resolveManagedPaths } from "../../shared/bootstrap";
-import { bootstrapApplication, detectSystemGit } from "./runtime";
+import { createDefaultSettings, resolveManagedPaths } from "../../shared/bootstrap";
+import { bootstrapApplication, detectSystemGit, saveAppSettings } from "./runtime";
 
 const temporaryRoots: string[] = [];
 
@@ -86,6 +86,29 @@ describe("bootstrapApplication", () => {
     expect(
       JSON.parse(readFileSync(state.managedPaths.settings, "utf8")).sync.autoSyncEnabled
     ).toBe(false);
+  });
+
+  test("persists updated agent paths to settings.json", () => {
+    const homeDirectory = createHomeDirectory();
+    const state = bootstrapApplication({
+      homeDirectory,
+      detectGit: () => ({
+        available: true,
+        executablePath: "/usr/bin/git",
+        version: "git version 2.50.0",
+        diagnostic: null
+      })
+    });
+
+    const settings = createDefaultSettings(homeDirectory);
+    settings.agentPaths.codexGlobal = "/tmp/codex-skills";
+    settings.agentPaths.claudeGlobal = "/tmp/claude-skills";
+
+    const persisted = saveAppSettings(state.managedPaths, settings);
+    const written = JSON.parse(readFileSync(state.managedPaths.settings, "utf8"));
+
+    expect(persisted.agentPaths.codexGlobal).toBe("/tmp/codex-skills");
+    expect(written.agentPaths.claudeGlobal).toBe("/tmp/claude-skills");
   });
 
   test("reports warning state when git is missing", () => {

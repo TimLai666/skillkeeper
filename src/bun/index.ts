@@ -1,8 +1,28 @@
-import { BrowserView, BrowserWindow } from "electrobun";
+import { BrowserView, BrowserWindow, Utils } from "electrobun";
 import type { ShellRPCSchema } from "../shared/bootstrap-rpc";
-import { bootstrapApplication } from "./bootstrap/runtime";
+import { bootstrapApplication, saveAppSettings } from "./bootstrap/runtime";
+import type { LibrarySkillSummary } from "../shared/deployment";
+import { DeploymentService } from "./deployment/service";
+import { ImportManager } from "./imports/service";
+import { initializeLibraryStore } from "./library/store";
+import { refreshTrackedRepositoryStatus } from "./git/source-repos";
 
 let bootstrapState = bootstrapApplication();
+let importManager = new ImportManager(bootstrapState.managedPaths);
+let deploymentService = new DeploymentService(bootstrapState.managedPaths);
+
+function listLibrarySkills(): LibrarySkillSummary[] {
+  const store = initializeLibraryStore(bootstrapState.managedPaths);
+
+  try {
+    return store.listSkills().map((skill) => ({
+      skill,
+      deployments: store.listPlatformBindingsForSkill(skill.id)
+    }));
+  } finally {
+    store.close();
+  }
+}
 
 const rpc = BrowserView.defineRPC<ShellRPCSchema>({
   handlers: {
@@ -10,7 +30,97 @@ const rpc = BrowserView.defineRPC<ShellRPCSchema>({
       getBootstrapState: () => bootstrapState,
       refreshBootstrapState: () => {
         bootstrapState = bootstrapApplication();
+        importManager = new ImportManager(bootstrapState.managedPaths);
+        deploymentService = new DeploymentService(bootstrapState.managedPaths);
         return bootstrapState;
+      },
+      pickImportSource: async (params?: unknown) => {
+        const { kind } = params as { kind: "folder" | "archive" };
+        const selectedPaths = await Utils.openFileDialog({
+          canChooseFiles: kind === "archive",
+          canChooseDirectory: kind === "folder",
+          allowsMultipleSelection: false,
+          allowedFileTypes: kind === "archive" ? "zip,tar.gz,tgz" : "*"
+        });
+
+        const selectedPath = selectedPaths.map((item) => item.trim()).find(Boolean) ?? null;
+        return { selectedPath };
+      },
+      scanImportSource: async (params?: unknown) => {
+        const { sourcePath } = params as { sourcePath: string };
+        return importManager.scanSource(sourcePath);
+      },
+      scanGitRepository: async (params?: unknown) => {
+        const { repositoryUrl } = params as { repositoryUrl: string };
+        return importManager.scanGitRepository(repositoryUrl);
+      },
+      importCandidates: async (params?: unknown) => {
+        const {
+          sessionId,
+          candidateIds,
+          acknowledgeWarnings
+        } = params as {
+          sessionId: string;
+          candidateIds: string[];
+          acknowledgeWarnings: boolean;
+        };
+
+        return importManager.importCandidates(sessionId, candidateIds, acknowledgeWarnings);
+      },
+      listTrackedRepositories: () => {
+        const store = initializeLibraryStore(bootstrapState.managedPaths);
+
+        try {
+          return store.listGitBindings();
+        } finally {
+          store.close();
+        }
+      },
+      refreshTrackedRepositoryStatus: (params?: unknown) => {
+        const { gitBindingId } = params as { gitBindingId: string };
+        return refreshTrackedRepositoryStatus(gitBindingId, bootstrapState.managedPaths);
+      },
+      listLibrarySkills: () => listLibrarySkills(),
+      updateAgentPaths: (params?: unknown) => {
+        const { codexGlobal, claudeGlobal } = params as {
+          codexGlobal: string;
+          claudeGlobal: string;
+        };
+
+        bootstrapState.settings = saveAppSettings(bootstrapState.managedPaths, {
+          ...bootstrapState.settings,
+          agentPaths: {
+            codexGlobal,
+            claudeGlobal
+          }
+        });
+
+        return bootstrapState.settings;
+      },
+      installSkill: (params?: unknown) => {
+        const { skillId, platform } = params as {
+          skillId: string;
+          platform: "codex" | "claude-code";
+        };
+        return deploymentService.installSkill(skillId, platform, bootstrapState.settings);
+      },
+      updateInstalledSkill: (params?: unknown) => {
+        const { skillId, platform } = params as {
+          skillId: string;
+          platform: "codex" | "claude-code";
+        };
+        return deploymentService.updateSkill(skillId, platform, bootstrapState.settings);
+      },
+      uninstallSkill: (params?: unknown) => {
+        const { skillId, platform } = params as {
+          skillId: string;
+          platform: "codex" | "claude-code";
+        };
+        return deploymentService.uninstallSkill(skillId, platform);
+      },
+      deleteLibrarySkill: (params?: unknown) => {
+        const { skillId } = params as { skillId: string };
+        return deploymentService.deleteSkill(skillId);
       }
     },
     messages: {}

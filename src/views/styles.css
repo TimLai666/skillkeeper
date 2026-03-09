@@ -122,6 +122,10 @@ button:disabled {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.panel-wide {
+  grid-column: 1 / -1;
+}
+
 .panel {
   padding: 1.5rem;
 }
@@ -165,10 +169,169 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
+.kv-grid input {
+  width: 100%;
+  border: 1px solid rgba(92, 67, 37, 0.15);
+  border-radius: 16px;
+  padding: 0.8rem 0.95rem;
+  font: inherit;
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--text);
+}
+
 .issues-list {
   margin: 1rem 0 0;
   padding-left: 1.1rem;
   line-height: 1.55;
+}
+
+.import-controls,
+.manual-path-row,
+.scan-summary {
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.import-controls {
+  margin-top: 1rem;
+}
+
+.manual-path-row {
+  margin-top: 1rem;
+}
+
+.manual-path-row input {
+  flex: 1 1 420px;
+  min-width: 0;
+  border: 1px solid rgba(92, 67, 37, 0.15);
+  border-radius: 18px;
+  padding: 0.9rem 1rem;
+  font: inherit;
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--text);
+}
+
+.scan-results {
+  margin-top: 1.25rem;
+}
+
+.scan-summary {
+  margin-bottom: 0.9rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.candidate-card {
+  border: 1px solid rgba(92, 67, 37, 0.12);
+  border-radius: 18px;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.candidate-card + .candidate-card {
+  margin-top: 0.8rem;
+}
+
+.candidate-card-invalid {
+  border-color: rgba(141, 47, 43, 0.22);
+}
+
+.candidate-header {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.candidate-header span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.candidate-header small {
+  color: var(--muted);
+}
+
+.candidate-issues,
+.candidate-warnings {
+  margin: 0.85rem 0 0;
+  padding-left: 1rem;
+}
+
+.candidate-issues {
+  color: var(--error);
+}
+
+.candidate-warnings {
+  color: var(--warning);
+}
+
+.error-copy {
+  color: var(--error);
+  margin-top: 0.85rem;
+}
+
+.import-result {
+  margin-top: 1rem;
+  color: var(--muted);
+}
+
+.tracked-repos {
+  margin-top: 1.4rem;
+}
+
+.tracked-repos h3 {
+  margin: 0 0 0.8rem;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.repo-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.repo-row div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.repo-row small,
+.repo-meta {
+  color: var(--muted);
+}
+
+.repo-meta {
+  margin: 0.85rem 0 0;
+}
+
+.skill-deployments {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.deployment-column {
+  border: 1px solid rgba(92, 67, 37, 0.1);
+  border-radius: 16px;
+  padding: 0.9rem;
+  background: rgba(255, 255, 255, 0.44);
+}
+
+.deployment-column strong,
+.deployment-column small {
+  display: block;
+}
+
+.deployment-column small {
+  margin-top: 0.25rem;
+  color: var(--muted);
+  text-transform: capitalize;
 }
 
 @media (max-width: 860px) {
@@ -183,5 +346,9 @@ button:disabled {
   .hero-card,
   .panel {
     border-radius: 22px;
+  }
+
+  .skill-deployments {
+    grid-template-columns: 1fr;
   }
 }

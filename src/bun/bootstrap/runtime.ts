@@ -1,12 +1,18 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { homedir } from "node:os";
-import type { AppSettings, BootstrapState, GitReadiness } from "../../shared/bootstrap";
+import type {
+  AppSettings,
+  BootstrapState,
+  GitReadiness,
+  ManagedPaths
+} from "../../shared/bootstrap";
 import {
   createDefaultSettings,
   listBootstrapDirectories,
   resolveManagedPaths
 } from "../../shared/bootstrap";
+import { initializeLibraryStore } from "../library/store";
 
 export interface BootstrapRuntimeOptions {
   homeDirectory?: string;
@@ -78,6 +84,24 @@ function ensureBootstrapFiles(homeDirectory: string): {
   };
 }
 
+export function saveAppSettings(managedPaths: ManagedPaths, settings: AppSettings): AppSettings {
+  const normalized: AppSettings = {
+    agentPaths: {
+      codexGlobal: settings.agentPaths.codexGlobal.trim(),
+      claudeGlobal: settings.agentPaths.claudeGlobal.trim()
+    },
+    git: {
+      authMode: settings.git.authMode
+    },
+    sync: {
+      autoSyncEnabled: settings.sync.autoSyncEnabled
+    }
+  };
+
+  writeFileSync(managedPaths.settings, `${JSON.stringify(normalized, null, 2)}\n`, "utf8");
+  return normalized;
+}
+
 export function detectSystemGit(
   env: NodeJS.ProcessEnv = process.env,
   runCommand: SpawnCommand = spawnSync
@@ -131,6 +155,8 @@ export function bootstrapApplication(
   try {
     const { managedPaths, settings, settingsLoadedFromDisk } =
       ensureBootstrapFiles(homeDirectory);
+    const libraryStore = initializeLibraryStore(managedPaths);
+    libraryStore.close();
     const git = detectGit(env);
     const issues = git.available ? [] : [git.diagnostic ?? "Git is unavailable."];
 

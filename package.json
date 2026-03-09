@@ -11,8 +11,10 @@
   },
   "dependencies": {
     "electrobun": "^1.15.1",
+    "fflate": "^0.8.2",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "tar": "^7.5.2"
   },
   "devDependencies": {
     "@types/react": "^19.1.12",
