@@ -352,6 +352,29 @@ function App(): React.JSX.Element {
     }
   }
 
+  async function refreshConflictState() {
+    setSavingSyncSettings(true);
+    setScanError(null);
+
+    try {
+      setSyncStatus(await rpc.request.refreshConflictStatus());
+    } catch (error) {
+      setScanError(error instanceof Error ? error.message : "Failed to refresh conflict status.");
+    } finally {
+      setSavingSyncSettings(false);
+    }
+  }
+
+  async function openLibraryRepoFolder() {
+    setScanError(null);
+
+    try {
+      await rpc.request.openLibraryRepoFolder();
+    } catch (error) {
+      setScanError(error instanceof Error ? error.message : "Failed to open the Library Repo folder.");
+    }
+  }
+
   async function saveMetadata() {
     if (!selectedSkillDetail) {
       return;
@@ -447,6 +470,12 @@ function App(): React.JSX.Element {
             {refreshing ? "Refreshing..." : "Refresh Bootstrap State"}
           </button>
           {state && <span className="status-pill">{state.status}</span>}
+          {syncStatus?.conflict.hasConflict && (
+            <span className="status-pill status-pill-conflict">
+              {syncStatus.conflict.conflictedFiles.length} unresolved conflict
+              {syncStatus.conflict.conflictedFiles.length === 1 ? "" : "s"}
+            </span>
+          )}
         </div>
       </section>
 
@@ -478,6 +507,12 @@ function App(): React.JSX.Element {
               {state.issues.map((issue) => (
                 <li key={issue}>{issue}</li>
               ))}
+              {syncStatus?.conflict.hasConflict && (
+                <li>
+                  Library Repo conflict detected in {syncStatus.conflict.conflictedFiles.length} file
+                  {syncStatus.conflict.conflictedFiles.length === 1 ? "" : "s"}.
+                </li>
+              )}
             </ul>
           </section>
 
@@ -632,6 +667,47 @@ function App(): React.JSX.Element {
                 </ul>
               ) : (
                 <p>No library sync jobs yet.</p>
+              )}
+            </div>
+            <div className="sync-jobs">
+              <h3>Sync Center</h3>
+              {syncStatus?.conflict.hasConflict ? (
+                <>
+                  <p className="error-copy">
+                    Unresolved sync conflict. Resolve the files locally, then refresh or retry.
+                  </p>
+                  <p className="repo-meta">
+                    {syncStatus.conflict.lastFailureDetail ?? "No failure detail recorded."}
+                  </p>
+                  <ul className="history-list">
+                    {syncStatus.conflict.conflictedFiles.map((filePath) => (
+                      <li key={filePath}>
+                        <code>{filePath}</code>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="import-controls">
+                    <button
+                      type="button"
+                      onClick={openLibraryRepoFolder}
+                      disabled={!syncStatus.repo.isInitialized}
+                    >
+                      Open Repo Folder
+                    </button>
+                    <button type="button" onClick={refreshConflictState} disabled={savingSyncSettings}>
+                      {savingSyncSettings ? "Refreshing..." : "Refresh Conflict Status"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={runManualLibrarySync}
+                      disabled={syncingLibraryRepo || !syncStatus.repo.isInitialized}
+                    >
+                      {syncingLibraryRepo ? "Retrying..." : "Retry Sync"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <p>No unresolved library sync conflicts.</p>
               )}
             </div>
           </section>

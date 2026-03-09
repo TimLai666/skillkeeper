@@ -9,5 +9,11 @@ export interface LibraryRepoState {
 
 export interface LibrarySyncStatus {
   repo: LibraryRepoState;
+  conflict: {
+    hasConflict: boolean;
+    conflictedFiles: string[];
+    lastFailureDetail: string | null;
+    updatedAt: string | null;
+  };
   recentJobs: SyncJobRecord[];
 }

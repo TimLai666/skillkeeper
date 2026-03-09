@@ -1,4 +1,5 @@
 import { BrowserView, BrowserWindow, Utils } from "electrobun";
+import { spawn } from "node:child_process";
 import type { ShellRPCSchema } from "../shared/bootstrap-rpc";
 import { bootstrapApplication, saveAppSettings } from "./bootstrap/runtime";
 import type { LibrarySkillSummary } from "../shared/library-management";
@@ -24,6 +25,20 @@ let libraryManagementService = new LibraryManagementService(bootstrapState.manag
 
 function listLibrarySkills(): LibrarySkillSummary[] {
   return libraryManagementService.listSkillSummaries();
+}
+
+function openFolderInShell(targetPath: string): void {
+  if (process.platform === "win32") {
+    spawn("explorer", [targetPath], { detached: true, stdio: "ignore" }).unref();
+    return;
+  }
+
+  if (process.platform === "darwin") {
+    spawn("open", [targetPath], { detached: true, stdio: "ignore" }).unref();
+    return;
+  }
+
+  spawn("xdg-open", [targetPath], { detached: true, stdio: "ignore" }).unref();
 }
 
 const rpc = BrowserView.defineRPC<ShellRPCSchema>({
@@ -105,6 +120,12 @@ const rpc = BrowserView.defineRPC<ShellRPCSchema>({
         });
       },
       getLibrarySyncStatus: () => librarySyncService.getLibrarySyncStatus(),
+      refreshConflictStatus: () => librarySyncService.refreshConflictStatus(),
+      openLibraryRepoFolder: () => {
+        const repo = librarySyncService.getLibraryRepoState();
+        openFolderInShell(repo.repoPath);
+        return { repoPath: repo.repoPath };
+      },
       initializeLibraryRepo: (params?: unknown) => {
         const { remoteUrl } = params as { remoteUrl: string | null };
         return librarySyncService.initializeLibraryRepo(remoteUrl);

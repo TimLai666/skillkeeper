@@ -7,6 +7,7 @@ import type { LibraryRepoState, LibrarySyncStatus } from "../../shared/library-s
 import { initializeLibraryStore } from "../library/store";
 
 const LIBRARY_REPO_SETTING_KEY = "sync.libraryRepo";
+const LIBRARY_CONFLICT_SETTING_KEY = "sync.libraryConflict";
 
 function normalizeStdout(output: string | Buffer | null | undefined): string {
   if (typeof output === "string") {
@@ -41,6 +42,15 @@ function defaultRepoState(managedPaths: ManagedPaths): LibraryRepoState {
     remoteUrl: null,
     defaultBranch: "main",
     isInitialized: false
+  };
+}
+
+function defaultConflictState(): LibrarySyncStatus["conflict"] {
+  return {
+    hasConflict: false,
+    conflictedFiles: [],
+    lastFailureDetail: null,
+    updatedAt: null
   };
 }
 
@@ -82,11 +92,30 @@ export class LibrarySyncService {
         repo:
           store.getSetting<LibraryRepoState>(LIBRARY_REPO_SETTING_KEY)?.value ??
           defaultRepoState(this.managedPaths),
+        conflict:
+          store.getSetting<LibrarySyncStatus["conflict"]>(LIBRARY_CONFLICT_SETTING_KEY)?.value ??
+          defaultConflictState(),
         recentJobs: store.listSyncJobsByScope("library")
       };
     } finally {
       store.close();
     }
+  }
+
+  refreshConflictStatus(): LibrarySyncStatus {
+    const repo = this.getLibraryRepoState();
+    const conflict = repo.isInitialized
+      ? this.inspectConflictState(repo.repoPath)
+      : defaultConflictState();
+    const store = initializeLibraryStore(this.managedPaths);
+
+    try {
+      store.setSetting(LIBRARY_CONFLICT_SETTING_KEY, conflict);
+    } finally {
+      store.close();
+    }
+
+    return this.getLibrarySyncStatus();
   }
 
   initializeLibraryRepo(remoteUrl?: string | null): LibraryRepoState {
@@ -236,13 +265,14 @@ export class LibrarySyncService {
 
       const updateStore = initializeLibraryStore(this.managedPaths);
       try {
-        return (
+        const updated =
           updateStore.updateSyncJob(job.id, {
             status: "succeeded",
             completedAt: new Date().toISOString(),
             detail: message
-          }) ?? job
-        );
+          }) ?? job;
+        this.refreshConflictStatus();
+        return updated;
       } finally {
         updateStore.close();
       }
@@ -250,13 +280,14 @@ export class LibrarySyncService {
       const detail = error instanceof Error ? error.message : "Library sync failed.";
       const updateStore = initializeLibraryStore(this.managedPaths);
       try {
-        return (
+        const updated =
           updateStore.updateSyncJob(job.id, {
             status: "failed",
             completedAt: new Date().toISOString(),
             detail
-          }) ?? job
-        );
+          }) ?? job;
+        this.persistConflictFailure(detail, repo.isInitialized ? repo.repoPath : null);
+        return updated;
       } finally {
         updateStore.close();
       }
@@ -269,5 +300,39 @@ export class LibrarySyncService {
     }
 
     return this.syncLibraryRepo(message);
+  }
+
+  private inspectConflictState(repoPath: string): LibrarySyncStatus["conflict"] {
+    const unmerged = runGit(["diff", "--name-only", "--diff-filter=U"], repoPath);
+    const conflictedFiles = normalizeStdout(unmerged.stdout)
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    const store = initializeLibraryStore(this.managedPaths);
+    const lastFailedJob = store.listSyncJobsByScope("library").find((job) => job.status === "failed");
+    store.close();
+
+    return {
+      hasConflict: conflictedFiles.length > 0,
+      conflictedFiles,
+      lastFailureDetail: conflictedFiles.length > 0 ? lastFailedJob?.detail ?? null : null,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  private persistConflictFailure(detail: string, repoPath: string | null): void {
+    const conflict = repoPath ? this.inspectConflictState(repoPath) : defaultConflictState();
+    const store = initializeLibraryStore(this.managedPaths);
+
+    try {
+      store.setSetting(LIBRARY_CONFLICT_SETTING_KEY, {
+        ...conflict,
+        lastFailureDetail: detail,
+        updatedAt: new Date().toISOString()
+      });
+    } finally {
+      store.close();
+    }
   }
 }

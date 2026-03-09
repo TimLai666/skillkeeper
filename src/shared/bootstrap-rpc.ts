@@ -80,6 +80,16 @@ export type ShellRPCSchema = ElectrobunRPCSchema & {
         params: undefined;
         response: LibrarySyncStatus;
       };
+      refreshConflictStatus: {
+        params: undefined;
+        response: LibrarySyncStatus;
+      };
+      openLibraryRepoFolder: {
+        params: undefined;
+        response: {
+          repoPath: string;
+        };
+      };
       initializeLibraryRepo: {
         params: {
           remoteUrl: string | null;

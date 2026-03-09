@@ -115,6 +115,12 @@ button:disabled {
   text-transform: capitalize;
 }
 
+.status-pill-conflict {
+  background: rgba(141, 47, 43, 0.12);
+  border-color: rgba(141, 47, 43, 0.24);
+  color: var(--error);
+}
+
 .panel-grid {
   margin-top: 1.5rem;
   display: grid;
