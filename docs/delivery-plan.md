@@ -2,43 +2,42 @@
 
 ## How to Use This Plan
 
-這份文件是 SkillKeeper 的專案收斂與交接入口，不是版本規劃表。  
-任何 agent 在開始工作前，先看這份文件，再對照 `openspec list --json`、相關 change artifacts、與 `docs/mvp-readiness.md`。
+這份文件是 SkillKeeper 的協作與接手入口，不是產品宣傳，也不是版本規劃。
+其他 agent 接手時，先讀這份文件，再交叉檢查 `openspec list --json`、相關 change artifacts、以及 `docs/mvp-readiness.md`。
 
-更新這份文件時，至少同步更新：
+每次更新這份文件時，至少同步更新以下區塊：
 
 - `Current Focus`
 - `Blockers`
 - `Next Deliverable`
 - `Last Verified State`
 
-如果目前 milestone 的 `Exit Criteria` 尚未滿足，不要把專案主焦點切到下一個 milestone。
+如果當前 milestone 的 `Exit Criteria` 尚未滿足，不要把專案主焦點切到下一個 milestone。
 
 ## Current Focus
 
-- 目前所在 milestone：`Baseline 收斂`
+- 目前所在 milestone：`Baseline 收斂` 收尾
 - 目前 active change：`sync-main-spec-baseline`
 - 技術基線：`Electrobun + React + TypeScript + SQLite`
-- PRD 差異：PRD 曾提 `Go + Wails`，但目前實作與後續規格都以 `Electrobun` 為準
-- 現況摘要：
-  - MVP 主體程式已完成
-  - `openspec/specs/` 仍為空，主 baseline 尚未建立
+- PRD 差異：PRD 曾提 `Go + Wails`，目前實作與主規格都以 `Electrobun` 為準
+- 目前現況：
+  - MVP 主體功能已完成
+  - `openspec/specs/` 主 baseline 已建立
+  - 已完成 changes 已同步並封存，只剩 `sync-main-spec-baseline` 待封存
   - Windows 有 readiness 證據
-  - macOS / Linux 尚未補原生 smoke evidence
-  - `README.MD` 已改為摘要入口，完整收斂資訊由本文件承接
+  - macOS / Linux 尚缺原生 smoke evidence
 
 ## Blockers
 
-- `openspec/specs/` 尚未同步主 baseline，後續 change 缺少穩定 requirements source
-- 多個 completed changes 仍是 active 狀態，尚未在主 specs 建立後 archive
-- macOS / Linux 沒有原生 smoke evidence，MVP 還不能完全收口
+- `sync-main-spec-baseline` 尚未封存，Baseline 收斂尚未完全結束
+- macOS / Linux 缺少原生 smoke evidence，MVP 無法正式宣告完成
+- PRD 實現度對照表尚未整理完成
 
 ## Next Deliverable
 
-- 建立 `openspec/specs/` 主 baseline，覆蓋已完成能力
-- 比對 completed/archived change specs 與 main specs 是否一致
-- archive 剩餘 completed active changes
-- 補一份 PRD 實現度對照表
+- archive `sync-main-spec-baseline`
+- 建立下一個 change 來處理 `MVP Exit Gate`
+- 補一份 PRD 實現度對照表並安排 macOS / Linux smoke evidence
 
 ## Milestones
 
@@ -46,68 +45,68 @@
 
 **Goal**
 
-把目前已完成的 MVP 功能收斂成可維護的 baseline，避免後續開發只依賴 scattered change artifacts。
+把已完成的 MVP 主體收斂成穩定 baseline，讓後續工作不再依賴 scattered change artifacts。
 
 **Current State**
 
-- active change 是 `sync-main-spec-baseline`
-- `openspec/specs/` 目前為空
-- README 已是摘要入口，但主規格與 archive 清理尚未完成
+- active change 為 `sync-main-spec-baseline`
+- `openspec/specs/` 已建立 10 個主 capability specs
+- 已完成 active changes 已封存到 `openspec/changes/archive/`
+- README 與交接文件已可作為接手入口
 
 **In Scope**
 
 - 建立 main specs
-- 比對已完成 change 的 stable observable requirements
+- 同步已完成 change 的 stable observable requirements
 - archive completed active changes
-- 維護 README 與 delivery plan 的可讀性和一致性
+- 收斂 README 與 delivery plan 的交接資訊
 
 **Out of Scope**
 
-- 新 runtime features
-- 額外 agent support
-- plugin / marketplace 類能力
+- 新增 runtime features
+- 擴充 agent support
+- plugin / marketplace 能力
 
 **Blockers**
 
-- 尚未完成 main spec sync
-- 尚未清空 completed active changes
+- `sync-main-spec-baseline` 本身尚未封存
 
 **Next Deliverable**
 
-- `openspec/specs/` populated
-- `openspec list --json` 只保留真正未完成的 change
+- `sync-main-spec-baseline` archive 完成
+- 交接主焦點切到 `MVP Exit Gate`
 
 **Exit Criteria**
 
-- `openspec/specs/` 已建立並覆蓋已完成能力
-- completed active changes 已 archive
-- README / delivery plan / readiness docs 三者一致
+- `openspec/specs/` 已有穩定的主 capability specs
+- completed active changes 已完成 archive
+- README / delivery plan / readiness docs 一致
 
 **Related OpenSpec Changes**
 
 - `sync-main-spec-baseline`
-- `bootstrap-desktop-shell`
-- `add-local-library-model`
-- `add-skill-import-folder-archive`
-- `add-git-import-tracking`
-- `add-agent-deployment`
-- `add-library-management-ui`
-- `add-library-sync-repo`
-- `add-sync-conflict-ui`
-- `add-dashboard-settings-ui`
+- `archive/2026-03-10-bootstrap-desktop-shell`
+- `archive/2026-03-10-add-local-library-model`
+- `archive/2026-03-10-add-skill-import-folder-archive`
+- `archive/2026-03-10-add-git-import-tracking`
+- `archive/2026-03-10-add-agent-deployment`
+- `archive/2026-03-10-add-library-management-ui`
+- `archive/2026-03-10-add-library-sync-repo`
+- `archive/2026-03-10-add-sync-conflict-ui`
+- `archive/2026-03-10-add-dashboard-settings-ui`
 - `archive/2026-03-09-polish-mvp-acceptance`
 
 ### MVP Exit Gate
 
 **Goal**
 
-把目前「功能可用」提升成「MVP 可正式驗收」。
+把「功能大致可用」提升到「MVP 可正式宣告完成」。
 
 **Current State**
 
 - Windows readiness 已有證據
-- macOS / Linux 尚未原生驗證
-- PRD 實現度尚未整理成明確對照表
+- macOS / Linux 尚未做原生驗證
+- PRD 對照表仍未整理，需逐條確認完成度
 
 **In Scope**
 
@@ -118,23 +117,23 @@
 
 **Out of Scope**
 
-- 新功能擴充
+- 新產品功能
 - 架構重寫
 
 **Blockers**
 
-- 缺少 macOS / Linux 原生環境驗證
-- 缺少正式 PRD gap list
+- 缺少 macOS / Linux 原生 smoke evidence
+- 缺少完整 PRD gap list
 
 **Next Deliverable**
 
 - 三平台 smoke evidence
-- PRD 實現度矩陣
+- PRD 對照表
 
 **Exit Criteria**
 
-- Windows / macOS / Linux 都有原生 smoke evidence
-- PRD 每個重要需求都有完成度標記
+- Windows / macOS / Linux 都有 smoke evidence
+- PRD 已逐條標示已完成、部分完成、未完成、刻意偏離
 
 **Related OpenSpec Changes**
 
@@ -145,17 +144,17 @@
 
 **Goal**
 
-補齊最容易造成使用摩擦的穩定性與操作邊界問題。
+在 baseline 穩定後，補齊最容易影響實際使用的缺口與 diagnostics。
 
 **Current State**
 
-- 主要功能已存在，但安裝目標、錯誤診斷、手動驗收證據仍可更完整
+- 主要功能已存在，但仍缺一些回歸驗證與錯誤可觀察性
 
 **In Scope**
 
 - agent path 模型補強
 - sync / deployment diagnostics
-- 更穩定的 smoke / regression 流程
+- 可重跑的 smoke / regression 流程
 
 **Out of Scope**
 
@@ -164,26 +163,26 @@
 
 **Blockers**
 
-- 需要先完成 `Baseline 收斂` 與 `MVP Exit Gate`
+- 需先完成 `Baseline 收斂` 與 `MVP Exit Gate`
 
 **Next Deliverable**
 
-- 穩定化 change proposal 與驗收標準
+- 穩定化 change proposal
 
 **Exit Criteria**
 
-- 核心錯誤路徑有清楚 diagnostics
-- 驗收流程可重跑且不依賴個人記憶
+- 常見失敗具備可讀 diagnostics
+- 驗證流程固定且可重跑
 
 **Related OpenSpec Changes**
 
-- 待 `Baseline 收斂` 後新增
+- 待 `Baseline 收斂` 完成後建立
 
 ### 能力擴充
 
 **Goal**
 
-在 baseline 穩定後，再擴充更多 agents 與更廣的 integration surface。
+在 baseline 穩定後，再擴增 agents、integration surface 與 adapter abstraction。
 
 **Current State**
 
@@ -202,25 +201,25 @@
 
 **Blockers**
 
-- 依賴前面里程碑完成
+- 需要先有穩定 baseline 與驗證流程
 
 **Next Deliverable**
 
-- 擴充能力的 change proposal
+- 能力擴充 change proposal
 
 **Exit Criteria**
 
-- 新能力能透過既有 main specs 與 OpenSpec flow 擴充，不破壞 baseline
+- 新能力需透過 main specs 與 OpenSpec flow 擴增，不可繞過 baseline
 
 **Related OpenSpec Changes**
 
-- 待後續新增
+- 待後續建立
 
 ### 生態化功能
 
 **Goal**
 
-只在核心穩定後再進入 plugin、marketplace、分享與生態層能力。
+只在核心穩定後，再做 plugin、marketplace、或更高層協作功能。
 
 **Current State**
 
@@ -238,30 +237,32 @@
 
 **Blockers**
 
-- 必須先完成前三個里程碑
+- 需要先完成穩定 baseline 與 release gate
 
 **Next Deliverable**
 
-- 生態層需求澄清與 proposal
+- 生態功能 proposal
 
 **Exit Criteria**
 
-- 有清楚的權限、同步、安裝與分發模型，不污染既有 library / deployment / sync 邊界
+- 新功能不破壞 library / deployment / sync 邊界
 
 **Related OpenSpec Changes**
 
-- 待後續新增
+- 待後續建立
 
 ## Last Verified State
 
 Verification date: 2026-03-10
 
 - `bun run typecheck`
-  - 最新結果：pass
+  - 最新一次結果：pass
 - `bun test`
-  - 最新結果：pass，`32 pass / 0 fail`
+  - 最新一次結果：pass，`32 pass / 0 fail`
 - `bun run build`
-  - 最新結果：pass
+  - 最新一次結果：pass
 - `bun run readiness:report`
-  - 最新已知報告：2026-03-09 Windows report
-  - 結果：Windows smoke pass；PRD 指標 pass
+  - 最新一次報告仍為 2026-03-09 Windows report
+  - 結果：Windows smoke pass，PRD metrics pass
+- `openspec list --json`
+  - 最新一次結果：只剩 `sync-main-spec-baseline` 為 active change
