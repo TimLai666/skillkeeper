@@ -2,13 +2,13 @@
 
 SkillKeeper 是一個桌面 GUI，用來集中管理 AI agent skills。
 
-目前實作技術為 `Electrobun + React + TypeScript + SQLite`。MVP 主體已覆蓋 import、library management、deployment、sync、conflict UI、dashboard/settings，但 PRD 並非 100% 全數落地。
+目前實作技術為 `Electrobun + React + TypeScript + SQLite`。目前 MVP 主體已覆蓋 import、library management、deployment、sync、conflict UI、dashboard/settings，但 PRD 並非 100% 全數落地。
 
 ## 目前狀態
 
 - MVP 主體已完成，Windows 有 build、test、readiness 驗證證據
 - PRD 原本提議 `Go + Wails`，目前正式實作改為 `Electrobun`
-- Windows 已驗證；macOS / Linux 尚未補原生 smoke evidence
+- Windows 已驗證；macOS / Linux 尚缺原生 smoke evidence
 
 ## 快速開始
 
@@ -61,7 +61,12 @@ bun run readiness:report
 - macOS / Linux 尚未補原生 smoke run
 - `openspec/specs/` 的穩定 baseline 尚未同步完成
 
+## 交付與收斂
+
+完整的專案收斂與接手資訊請看 [Delivery Plan](docs/delivery-plan.md)。
+
 ## 文件
 
+- [Delivery Plan](docs/delivery-plan.md)
 - [MVP Readiness](docs/mvp-readiness.md)
 - [PRD](PRD.md)

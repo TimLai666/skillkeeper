@@ -1,7 +1,8 @@
 ## 1. Developer Entry Docs
 
-- [ ] 1.1 Expand `README.MD` with product overview, current status, quick start, verification commands, major features, known limits, and document links.
-- [ ] 1.2 Verify the README commands and status statements match `package.json`, `docs/mvp-readiness.md`, and the current implementation posture.
+- [x] 1.1 Rewrite `README.MD` as a concise entrypoint with product overview, current status, quick start, verification commands, major features, known limits, and links to supporting documents.
+- [x] 1.2 Create `docs/delivery-plan.md` with fixed collaboration sections for current focus, blockers, next deliverable, exit criteria, related OpenSpec changes, and last verified state.
+- [x] 1.3 Verify the README and delivery plan match `package.json`, `docs/mvp-readiness.md`, `openspec list --json`, and the current implementation posture.
 
 ## 2. Main Spec Baseline
 
